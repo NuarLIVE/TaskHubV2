@@ -461,7 +461,7 @@ export default function WalletPage() {
       pending: 'В обработке',
       failed: 'Ошибка',
       cancelled: 'Отменено',
-      expired: 'Истёк срок',
+      expired: 'Превышено время ожидания',
       blocked: 'Заблокировано',
       disputed: 'Спор / Чарджбэк',
       refunded: 'Возврат'
@@ -519,12 +519,12 @@ export default function WalletPage() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className={`mb-6 p-4 rounded-lg border-l-4 flex items-start justify-between ${
+            className={`mb-6 p-4 rounded-lg border-l-4 flex items-start justify-between backdrop-blur-md shadow-lg ${
               notification.type === 'success'
-                ? 'bg-green-50 border-green-500 text-green-900'
+                ? 'bg-green-50/80 border-green-500 text-green-900'
                 : notification.type === 'error'
-                ? 'bg-red-50 border-red-500 text-red-900'
-                : 'bg-blue-50 border-blue-500 text-blue-900'
+                ? 'bg-red-50/80 border-red-500 text-red-900'
+                : 'bg-blue-50/80 border-blue-500 text-blue-900'
             }`}
           >
             <div className="flex-1">
@@ -625,11 +625,11 @@ export default function WalletPage() {
             </Card>
           </div>
 
-          <Card>
+          <Card className="backdrop-blur-md bg-white/60 border border-white/20 shadow-lg">
             <CardHeader>
               <CardTitle className="text-lg">Вывод средств через Stripe</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-6 pb-6">
               {loadingStripeStatus ? (
                 <div className="text-center py-4">
                   <div className="inline-block h-6 w-6 animate-spin rounded-full border-4 border-solid border-[#6FE7C8] border-r-transparent"></div>
@@ -639,9 +639,11 @@ export default function WalletPage() {
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     {stripeConnectStatus.onboarding_complete && stripeConnectStatus.payouts_enabled ? (
+                      <Badge variant="default" className="bg-[#6FE7C8] text-[#3F7F6E] hover:bg-[#5DD6B7]">Stripe подключён</Badge>
+                    ) : stripeConnectStatus.onboarding_complete ? (
                       <>
-                        <Badge variant="default" className="bg-green-500">Stripe подключён</Badge>
-                        <span className="text-sm text-gray-600">Выводы доступны</span>
+                        <Badge variant="secondary">Настройка завершена</Badge>
+                        <span className="text-sm text-gray-600">Ожидание активации выводов</span>
                       </>
                     ) : (
                       <>
@@ -661,7 +663,7 @@ export default function WalletPage() {
                   )}
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-3 px-2 pb-2">
                   <p className="text-sm text-gray-600">
                     Для вывода средств на банковский счёт необходимо подключить Stripe аккаунт
                   </p>
@@ -714,6 +716,7 @@ export default function WalletPage() {
                   <option value="pending">В обработке</option>
                   <option value="failed">Ошибка</option>
                   <option value="cancelled">Отменено</option>
+                  <option value="expired">Превышено время ожидания</option>
                 </select>
               </div>
             </div>
@@ -737,10 +740,17 @@ export default function WalletPage() {
                         {getTransactionIcon(transaction.type)}
                       </div>
                       <div>
-                        <div className="font-medium mb-1">{transaction.description}</div>
+                        <div className="font-medium mb-1">
+                          {transaction.type === 'deposit' && transaction.status === 'expired'
+                            ? `Пополнение кошелька $${transaction.amount.toFixed(2)}`
+                            : transaction.description}
+                        </div>
                         <div className="text-sm text-[#3F7F6E] flex items-center gap-2">
                           <Calendar className="h-3 w-3" />
                           {formatDate(transaction.created_at)}
+                          {transaction.type === 'deposit' && transaction.status === 'expired' && (
+                            <span className="text-xs text-amber-600 ml-2">• Превышено время ожидания</span>
+                          )}
                         </div>
                       </div>
                     </div>
