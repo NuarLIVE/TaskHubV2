@@ -265,7 +265,7 @@ export default function NavBar() {
   };
 
   return (
-    <nav className="sticky top-0 z-40 w-full border-b border-[#6FE7C8] bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <nav className="sticky top-0 z-40 w-full border-b border-[#6FE7C8]/80 bg-background/90 backdrop-blur-xl supports-[backdrop-filter]:bg-background/95">
       <div className="mx-auto max-w-7xl px-3 xs-375:px-4 sm:px-6 lg:px-8 h-14 xs-375:h-16 flex items-center justify-between">
         <div className="flex items-center gap-2 xs-375:gap-3">
           <Sparkles className="h-4 w-4 xs-375:h-5 xs-375:w-5 text-[#6FE7C8]" />
@@ -281,7 +281,11 @@ export default function NavBar() {
             const isDeals = link.label === 'Мои сделки';
             const isProposals = link.label === 'Отклики';
             const isWallet = link.label === 'Кошелёк';
-            const showBadge = (isMessages && hasUnread) || (isDeals && hasNewDeals) || (isProposals && hasNewProposals) || (isWallet && hasWalletUpdate);
+            const showBadge =
+              (isMessages && hasUnread) ||
+              (isDeals && hasNewDeals) ||
+              (isProposals && hasNewProposals) ||
+              (isWallet && hasWalletUpdate);
             return (
               <a
                 key={link.href}
@@ -351,7 +355,7 @@ export default function NavBar() {
       </div>
 
       {mobileMenuOpen && (
-        <div className="lg:hidden border-t border-[#6FE7C8] bg-background">
+        <div className="lg:hidden border-t border-[#6FE7C8] bg-background/95 backdrop-blur-xl">
           <div className="px-4 py-3 space-y-1">
             {(isAuthenticated ? PRIVATE_LINKS : PUBLIC_LINKS).map((link) => {
               const isMessages = link.label === t('nav.messages');
@@ -361,8 +365,8 @@ export default function NavBar() {
                   href={link.href}
                   className={`block px-3 py-2 rounded-md text-sm font-medium transition-colors relative ${
                     isActiveLink(link.href)
-                      ? 'bg-[#EFFFF8] text-[#6FE7C8]'
-                      : 'text-[#3F7F6E] hover:bg-[#EFFFF8] hover:text-foreground'
+                      ? 'bg-[#EFFFF8]/80 backdrop-blur text-[#6FE7C8]'
+                      : 'text-[#3F7F6E] hover:bg-[#EFFFF8]/80 hover:text-foreground'
                   }`}
                 >
                   <span className="flex items-center justify-between">
@@ -379,14 +383,14 @@ export default function NavBar() {
                 <>
                   <a
                     href="#/me"
-                    className="px-3 py-2 text-sm font-medium text-[#3F7F6E] flex items-center gap-2 hover:bg-[#EFFFF8] rounded-md"
+                    className="px-3 py-2 text-sm font-medium text-[#3F7F6E] flex items-center gap-2 hover:bg-[#EFFFF8]/80 rounded-md"
                   >
                     <User className="h-4 w-4 text-[#6FE7C8]" />
                     {user?.profile?.name}
                   </a>
                   <button
                     onClick={logout}
-                    className="w-full text-left px-3 py-2 rounded-md text-sm font-medium text-red-600 hover:bg-red-50"
+                    className="w-full text-left px-3 py-2 rounded-md text-sm font-medium text-red-600 hover:bg-red-50/80"
                   >
                     <LogOut className="h-4 w-4 inline mr-2" />
                     {t('common.logout')}
@@ -396,7 +400,7 @@ export default function NavBar() {
                 <>
                   <a
                     href="#/login"
-                    className="block px-3 py-2 rounded-md text-sm font-medium text-[#3F7F6E] hover:bg-[#EFFFF8] hover:text-foreground"
+                    className="block px-3 py-2 rounded-md text-sm font-medium text-[#3F7F6E] hover:bg-[#EFFFF8]/80 hover:text-foreground"
                   >
                     {t('common.login')}
                   </a>
@@ -414,12 +418,12 @@ export default function NavBar() {
       )}
 
       {isAuthenticated && !learningCompleted && (
-        <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border-b border-blue-200">
+        <div className="bg-blue-500/10 backdrop-blur-xl border-b border-blue-200/40">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-blue-100">
-                  <GraduationCap className="h-5 w-5 text-blue-600" />
+                <div className="p-2 rounded-lg bg-blue-100/60 backdrop-blur">
+                  <GraduationCap className="h-5 w-5 text-blue-700" />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-blue-900">
@@ -433,7 +437,7 @@ export default function NavBar() {
               <Button
                 asChild
                 size="sm"
-                className="bg-blue-600 hover:bg-blue-700 text-white shrink-0 px-6"
+                className="bg-blue-600/90 hover:bg-blue-700 text-white shrink-0 px-6 backdrop-blur-sm"
               >
                 <a href="#/learning">{t('learning.getStarted')}</a>
               </Button>
