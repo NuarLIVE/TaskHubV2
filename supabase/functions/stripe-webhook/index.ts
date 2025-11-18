@@ -61,7 +61,7 @@ Deno.serve(async (req: Request) => {
     let event: Stripe.Event;
 
     try {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+      event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
       console.log("Webhook signature verified successfully");
       console.log("Event type:", event.type);
       console.log("Event ID:", event.id);
@@ -214,7 +214,7 @@ Deno.serve(async (req: Request) => {
         console.log("Profile updated successfully");
       }
 
-      console.log(`✅ Successfully processed deposit for user ${user_id}: $${amount}`);
+      console.log("Successfully processed deposit for user", user_id, "amount:", amount);
     } else {
       console.log("Event type not handled:", event.type);
     }
@@ -230,7 +230,7 @@ Deno.serve(async (req: Request) => {
       }
     );
   } catch (error) {
-    console.error("❌ Webhook error:", error);
+    console.error("Webhook error:", error);
     console.error("Error stack:", error.stack);
     return new Response(
       JSON.stringify({
