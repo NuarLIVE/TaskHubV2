@@ -637,7 +637,7 @@ export default function WalletPage() {
                 </div>
               ) : stripeConnectStatus && stripeConnectStatus.status === 'connected' ? (
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     {stripeConnectStatus.onboarding_complete && stripeConnectStatus.payouts_enabled ? (
                       <Badge variant="default" className="bg-[#6FE7C8] text-[#3F7F6E] hover:bg-[#5DD6B7]">Stripe подключён</Badge>
                     ) : stripeConnectStatus.onboarding_complete ? (
@@ -652,15 +652,27 @@ export default function WalletPage() {
                       </>
                     )}
                   </div>
-                  {!stripeConnectStatus.onboarding_complete && (
-                    <Button
-                      onClick={handleConnectStripe}
-                      variant="outline"
-                      size="sm"
-                    >
-                      Продолжить настройку Stripe
-                    </Button>
-                  )}
+                  <div className="flex gap-2 flex-wrap">
+                    {!stripeConnectStatus.onboarding_complete && (
+                      <Button
+                        onClick={handleConnectStripe}
+                        variant="default"
+                        size="sm"
+                        className="bg-[#6FE7C8] hover:bg-[#5DD6B7] text-[#3F7F6E]"
+                      >
+                        Продолжить настройку Stripe
+                      </Button>
+                    )}
+                    {stripeConnectStatus.onboarding_complete && (
+                      <Button
+                        onClick={handleConnectStripe}
+                        variant="outline"
+                        size="sm"
+                      >
+                        Сменить аккаунт Stripe
+                      </Button>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-3 px-2 pb-2">
