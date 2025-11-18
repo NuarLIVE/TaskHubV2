@@ -629,7 +629,7 @@ export default function WalletPage() {
             <CardHeader>
               <CardTitle className="text-lg">Вывод средств через Stripe</CardTitle>
             </CardHeader>
-            <CardContent className="px-6">
+            <CardContent className="px-6 pb-6">
               {loadingStripeStatus ? (
                 <div className="text-center py-4">
                   <div className="inline-block h-6 w-6 animate-spin rounded-full border-4 border-solid border-[#6FE7C8] border-r-transparent"></div>
@@ -639,10 +639,7 @@ export default function WalletPage() {
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     {stripeConnectStatus.onboarding_complete && stripeConnectStatus.payouts_enabled ? (
-                      <>
-                        <Badge variant="default" className="bg-green-500">Stripe подключён</Badge>
-                        <Badge variant="default" className="bg-[#6FE7C8] text-[#3F7F6E] hover:bg-[#5DD6B7]">Вывод доступен</Badge>
-                      </>
+                      <Badge variant="default" className="bg-[#6FE7C8] text-[#3F7F6E] hover:bg-[#5DD6B7]">Stripe подключён</Badge>
                     ) : stripeConnectStatus.onboarding_complete ? (
                       <>
                         <Badge variant="secondary">Настройка завершена</Badge>
