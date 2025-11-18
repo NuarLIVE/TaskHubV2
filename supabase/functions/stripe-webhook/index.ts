@@ -5,7 +5,7 @@ import Stripe from "npm:stripe@14";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, stripe-signature",
 };
 
 Deno.serve(async (req: Request) => {
@@ -16,13 +16,29 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  console.log("Webhook received:", req.method);
+
   try {
     const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
     const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
-    
-    if (!stripeSecretKey || !webhookSecret) {
-      throw new Error("Stripe keys are not configured");
+
+    if (!stripeSecretKey) {
+      console.error("Missing STRIPE_SECRET_KEY");
+      return new Response(
+        JSON.stringify({ error: "Missing STRIPE_SECRET_KEY" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
+
+    if (!webhookSecret) {
+      console.error("Missing STRIPE_WEBHOOK_SECRET");
+      return new Response(
+        JSON.stringify({ error: "Missing STRIPE_WEBHOOK_SECRET" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log("Stripe keys configured");
 
     const stripe = new Stripe(stripeSecretKey, {
       apiVersion: "2023-10-16",
@@ -30,38 +46,64 @@ Deno.serve(async (req: Request) => {
 
     const signature = req.headers.get("stripe-signature");
     if (!signature) {
-      throw new Error("Missing stripe-signature header");
+      console.error("Missing stripe-signature header");
+      return new Response(
+        JSON.stringify({ error: "Missing stripe-signature header" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
+    console.log("Stripe signature header present");
+
     const body = await req.text();
+    console.log("Request body length:", body.length);
+
     let event: Stripe.Event;
 
     try {
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+      console.log("Webhook signature verified successfully");
+      console.log("Event type:", event.type);
+      console.log("Event ID:", event.id);
     } catch (err) {
-      console.error("Webhook signature verification failed:", err.message);
+      console.error("Webhook signature verification failed:");
+      console.error("Error message:", err.message);
+      console.error("Error type:", err.type);
       return new Response(
-        JSON.stringify({ error: "Webhook signature verification failed" }),
-        { status: 400, headers: corsHeaders }
+        JSON.stringify({
+          error: "Webhook signature verification failed",
+          message: err.message
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     if (event.type === "checkout.session.completed") {
+      console.log("Processing checkout.session.completed event");
       const session = event.data.object as Stripe.Checkout.Session;
-      
+
+      console.log("Session ID:", session.id);
+      console.log("Payment status:", session.payment_status);
+      console.log("Metadata:", JSON.stringify(session.metadata));
+
       const { user_id, wallet_id, transaction_id } = session.metadata || {};
 
       if (!user_id || !wallet_id || !transaction_id) {
         console.error("Missing metadata in checkout session");
+        console.error("user_id:", user_id);
+        console.error("wallet_id:", wallet_id);
+        console.error("transaction_id:", transaction_id);
         return new Response(
           JSON.stringify({ error: "Missing metadata" }),
-          { status: 400, headers: corsHeaders }
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
       const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
       const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
       const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+      console.log("Fetching transaction:", transaction_id);
 
       const { data: transaction, error: txError } = await supabase
         .from("transactions")
@@ -70,24 +112,27 @@ Deno.serve(async (req: Request) => {
         .maybeSingle();
 
       if (txError || !transaction) {
-        console.error("Transaction not found:", txError);
+        console.error("Transaction not found:", txError?.message);
         return new Response(
           JSON.stringify({ error: "Transaction not found" }),
-          { status: 404, headers: corsHeaders }
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
+
+      console.log("Transaction found. Current status:", transaction.status);
 
       if (transaction.status !== "pending") {
         console.log("Transaction already processed:", transaction.id);
         return new Response(
           JSON.stringify({ received: true, message: "Already processed" }),
-          { status: 200, headers: corsHeaders }
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      const amount = transaction.amount;
+      const amount = parseFloat(transaction.amount);
+      console.log("Processing amount:", amount);
 
-      await supabase
+      const { error: updateError } = await supabase
         .from("transactions")
         .update({
           status: "completed",
@@ -96,40 +141,82 @@ Deno.serve(async (req: Request) => {
         })
         .eq("id", transaction_id);
 
-      const { data: wallet } = await supabase
+      if (updateError) {
+        console.error("Failed to update transaction:", updateError.message);
+        throw updateError;
+      }
+
+      console.log("Transaction status updated to completed");
+
+      const { data: wallet, error: walletError } = await supabase
         .from("wallets")
         .select("balance, total_earned")
         .eq("id", wallet_id)
         .single();
 
+      if (walletError) {
+        console.error("Failed to fetch wallet:", walletError.message);
+        throw walletError;
+      }
+
       if (wallet) {
-        await supabase
+        const newBalance = parseFloat(wallet.balance) + amount;
+        const newTotalEarned = parseFloat(wallet.total_earned) + amount;
+
+        console.log("Updating wallet balance from", wallet.balance, "to", newBalance);
+
+        const { error: walletUpdateError } = await supabase
           .from("wallets")
           .update({
-            balance: wallet.balance + amount,
-            total_earned: wallet.total_earned + amount,
+            balance: newBalance,
+            total_earned: newTotalEarned,
             updated_at: new Date().toISOString(),
           })
           .eq("id", wallet_id);
+
+        if (walletUpdateError) {
+          console.error("Failed to update wallet:", walletUpdateError.message);
+          throw walletUpdateError;
+        }
+
+        console.log("Wallet updated successfully");
       }
 
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("balance")
         .eq("id", user_id)
         .single();
 
+      if (profileError) {
+        console.error("Failed to fetch profile:", profileError.message);
+        throw profileError;
+      }
+
       if (profile) {
-        await supabase
+        const newProfileBalance = parseFloat(profile.balance) + amount;
+
+        console.log("Updating profile balance from", profile.balance, "to", newProfileBalance);
+
+        const { error: profileUpdateError } = await supabase
           .from("profiles")
           .update({
-            balance: profile.balance + amount,
+            balance: newProfileBalance,
             updated_at: new Date().toISOString(),
           })
           .eq("id", user_id);
+
+        if (profileUpdateError) {
+          console.error("Failed to update profile:", profileUpdateError.message);
+          throw profileUpdateError;
+        }
+
+        console.log("Profile updated successfully");
       }
 
-      console.log(`Successfully processed deposit for user ${user_id}: $${amount}`);
+      console.log(`✅ Successfully processed deposit for user ${user_id}: $${amount}`);
+    } else {
+      console.log("Event type not handled:", event.type);
     }
 
     return new Response(
@@ -143,9 +230,13 @@ Deno.serve(async (req: Request) => {
       }
     );
   } catch (error) {
-    console.error("Webhook error:", error);
+    console.error("❌ Webhook error:", error);
+    console.error("Error stack:", error.stack);
     return new Response(
-      JSON.stringify({ error: error.message || "Internal server error" }),
+      JSON.stringify({
+        error: error.message || "Internal server error",
+        type: error.type || "unknown"
+      }),
       {
         status: 500,
         headers: {
