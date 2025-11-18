@@ -87,6 +87,20 @@ export default function WalletPage() {
       loadWalletData();
       loadTransactions();
 
+      const urlParams = new URLSearchParams(window.location.hash.split('?')[1] || '');
+      const depositStatus = urlParams.get('deposit');
+
+      if (depositStatus === 'success') {
+        alert('Пополнение успешно завершено!');
+        loadProfileBalance();
+        loadWalletData();
+        loadTransactions();
+        window.history.replaceState({}, '', '#/wallet');
+      } else if (depositStatus === 'cancelled') {
+        alert('Платёж был отменён');
+        window.history.replaceState({}, '', '#/wallet');
+      }
+
       const handleVisibilityChange = () => {
         if (!document.hidden) {
           loadProfileBalance();
@@ -190,20 +204,9 @@ export default function WalletPage() {
 
       if (error) throw error;
 
-      await getSupabase()
-        .from('wallets')
-        .update({
-          balance: wallet.balance - amount,
-          pending_balance: wallet.pending_balance + amount,
-          total_withdrawn: wallet.total_withdrawn + amount,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', wallet.id);
-
+      alert('Запрос на вывод создан. Средства будут переведены после проверки администратором.');
       setShowWithdrawModal(false);
       setWithdrawAmount('');
-      await loadProfileBalance();
-      await loadWalletData();
       await loadTransactions();
     } catch (error) {
       console.error('Error creating withdrawal:', error);
@@ -221,77 +224,42 @@ export default function WalletPage() {
     }
 
     try {
-      const newProfileBalance = profileBalance + amount;
+      const supabase = getSupabase();
+      const { data: { session } } = await supabase.auth.getSession();
 
-      const profileUpdate = await getSupabase()
-        .from('profiles')
-        .update({
-          balance: newProfileBalance,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id);
-
-      if (profileUpdate.error) throw profileUpdate.error;
-
-      let currentWallet = wallet;
-
-      if (!currentWallet) {
-        const { data: newWallet, error: walletCreateError } = await getSupabase()
-          .from('wallets')
-          .insert({
-            user_id: user.id,
-            balance: 0,
-            pending_balance: 0,
-            total_earned: 0,
-            total_withdrawn: 0,
-            currency: 'USD'
-          })
-          .select()
-          .single();
-
-        if (walletCreateError) throw walletCreateError;
-        currentWallet = newWallet;
+      if (!session) {
+        alert('Ошибка авторизации');
+        return;
       }
 
-      if (currentWallet) {
-        const newWalletBalance = currentWallet.balance + amount;
-        const newTotalEarned = currentWallet.total_earned + amount;
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-wallet-topup-session`;
 
-        const walletUpdate = await getSupabase()
-          .from('wallets')
-          .update({
-            balance: newWalletBalance,
-            total_earned: newTotalEarned,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', currentWallet.id);
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          amount,
+          currency: profileCurrency
+        }),
+      });
 
-        if (walletUpdate.error) throw walletUpdate.error;
+      const data = await response.json();
 
-        const transactionInsert = await getSupabase()
-          .from('transactions')
-          .insert({
-            wallet_id: currentWallet.id,
-            type: 'deposit',
-            amount: amount,
-            status: 'completed',
-            description: `Тестовое пополнение ${formatPrice(amount, profileCurrency)}`,
-            reference_type: 'deposit',
-            completed_at: new Date().toISOString()
-          });
-
-        if (transactionInsert.error) throw transactionInsert.error;
+      if (!response.ok) {
+        throw new Error(data.error || 'Не удалось создать сессию оплаты');
       }
 
-      alert(`Успешно пополнено на ${formatPrice(amount, profileCurrency)}`);
-      setShowDepositModal(false);
-      setDepositAmount('');
-      await loadProfileBalance();
-      await loadWalletData();
-      await loadTransactions();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('URL для оплаты не получен');
+      }
     } catch (error) {
       console.error('Error creating deposit:', error);
-      alert('Ошибка при пополнении баланса: ' + (error as Error).message);
+      alert('Ошибка при создании платежа: ' + (error as Error).message);
     }
   };
 
@@ -607,7 +575,7 @@ export default function WalletPage() {
             </CardHeader>
             <CardContent className="space-y-4 p-6 pt-0">
               <div>
-                <label className="text-sm font-medium mb-2 block">Сумма пополнения (тестовый ввод)</label>
+                <label className="text-sm font-medium mb-2 block">Сумма пополнения</label>
                 <Input
                   type="number"
                   step="0.01"
@@ -617,8 +585,8 @@ export default function WalletPage() {
                   placeholder="Введите сумму"
                 />
               </div>
-              <div className="text-sm text-yellow-600 bg-yellow-50 p-3 rounded-lg border border-yellow-200">
-                <strong>Тестовый режим:</strong> Средства будут зачислены мгновенно для тестирования функционала
+              <div className="text-sm text-blue-600 bg-blue-50 p-3 rounded-lg border border-blue-200">
+                После нажатия кнопки вы будете перенаправлены на защищённую страницу оплаты Stripe для безопасного проведения платежа.
               </div>
               <div className="flex gap-3">
                 <Button onClick={handleDeposit} className="flex-1">
