@@ -265,7 +265,7 @@ export default function NavBar() {
   };
 
   return (
-    <nav className="sticky top-0 z-40 w-full border-b border-[#6FE7C8]/120 bg-background/90 backdrop-blur-xl supports-[backdrop-filter]:bg-background/95">
+    <nav className="sticky top-0 z-40 w-full border-b border-[#6FE7C8]/50 bg-background/90 backdrop-blur-xl supports-[backdrop-filter]:bg-background/95">
       <div className="mx-auto max-w-7xl px-3 xs-375:px-4 sm:px-6 lg:px-8 h-14 xs-375:h-16 flex items-center justify-between">
         <div className="flex items-center gap-2 xs-375:gap-3">
           <Sparkles className="h-4 w-4 xs-375:h-5 xs-375:w-5 text-[#6FE7C8]" />
