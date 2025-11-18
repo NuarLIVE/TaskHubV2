@@ -46,7 +46,7 @@ interface Transaction {
   id: string;
   type: 'income' | 'outcome' | 'withdrawal' | 'deposit' | 'fee';
   amount: number;
-  status: 'pending' | 'completed' | 'failed' | 'cancelled';
+  status: 'pending' | 'completed' | 'failed' | 'cancelled' | 'expired';
   description: string;
   reference_type?: string;
   reference_id?: string;
@@ -450,7 +450,7 @@ export default function WalletPage() {
       pending: 'secondary',
       failed: 'destructive',
       cancelled: 'destructive',
-      expired: 'destructive',
+      expired: 'secondary',
       blocked: 'destructive',
       disputed: 'destructive',
       refunded: 'secondary'
