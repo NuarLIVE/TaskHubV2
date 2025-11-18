@@ -666,8 +666,9 @@ export default function WalletPage() {
                     {stripeConnectStatus.onboarding_complete && (
                       <Button
                         onClick={handleConnectStripe}
-                        variant="outline"
+                        variant="default"
                         size="sm"
+                        className="bg-yellow-500 hover:bg-yellow-600 text-white"
                       >
                         Сменить аккаунт Stripe
                       </Button>
