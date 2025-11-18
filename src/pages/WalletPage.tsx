@@ -69,6 +69,17 @@ export default function WalletPage() {
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [depositAmount, setDepositAmount] = useState('');
+  const [notification, setNotification] = useState<{
+    type: 'success' | 'error' | 'info';
+    title: string;
+    message: string;
+  } | null>(null);
+  const [stripeConnectStatus, setStripeConnectStatus] = useState<{
+    status: string;
+    onboarding_complete: boolean;
+    payouts_enabled: boolean;
+  } | null>(null);
+  const [loadingStripeStatus, setLoadingStripeStatus] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -86,19 +97,46 @@ export default function WalletPage() {
       });
       loadWalletData();
       loadTransactions();
+      loadStripeStatus();
 
       const urlParams = new URLSearchParams(window.location.hash.split('?')[1] || '');
       const depositStatus = urlParams.get('deposit');
+      const stripeStatus = urlParams.get('stripe');
 
       if (depositStatus === 'success') {
-        alert('Пополнение успешно завершено!');
+        setNotification({
+          type: 'success',
+          title: 'Пополнение успешно',
+          message: 'Средства зачислены на баланс.'
+        });
+        setTimeout(() => setNotification(null), 5000);
         loadProfileBalance();
         loadWalletData();
         loadTransactions();
         window.history.replaceState({}, '', '#/wallet');
       } else if (depositStatus === 'cancelled') {
-        alert('Платёж был отменён');
+        setNotification({
+          type: 'info',
+          title: 'Платёж отменён',
+          message: 'Оплата не была завершена. С вашего счёта деньги не списаны.'
+        });
+        setTimeout(() => setNotification(null), 5000);
         window.history.replaceState({}, '', '#/wallet');
+      } else if (stripeStatus === 'onboarding_return') {
+        setNotification({
+          type: 'success',
+          title: 'Stripe подключён',
+          message: 'Ваш Stripe аккаунт успешно настроен для выводов.'
+        });
+        setTimeout(() => setNotification(null), 5000);
+        window.history.replaceState({}, '', '#/wallet');
+      } else if (stripeStatus === 'onboarding_refresh') {
+        setNotification({
+          type: 'info',
+          title: 'Продолжите настройку',
+          message: 'Для завершения подключения Stripe необходимо заполнить все данные.'
+        });
+        setTimeout(() => setNotification(null), 5000);
       }
 
       const handleVisibilityChange = () => {
@@ -181,36 +219,159 @@ export default function WalletPage() {
     }
   };
 
+  const loadStripeStatus = async () => {
+    if (!user) return;
+
+    setLoadingStripeStatus(true);
+    try {
+      const supabase = getSupabase();
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) return;
+
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-stripe-account-status`;
+
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setStripeConnectStatus(data);
+      }
+    } catch (error) {
+      console.error('Error loading Stripe status:', error);
+    } finally {
+      setLoadingStripeStatus(false);
+    }
+  };
+
+  const handleConnectStripe = async () => {
+    if (!user) return;
+
+    try {
+      const supabase = getSupabase();
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        setNotification({
+          type: 'error',
+          title: 'Ошибка авторизации',
+          message: 'Необходимо войти в систему'
+        });
+        return;
+      }
+
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-stripe-account-link`;
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Не удалось создать ссылку для подключения');
+      }
+
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      console.error('Error connecting Stripe:', error);
+      setNotification({
+        type: 'error',
+        title: 'Ошибка подключения',
+        message: (error as Error).message
+      });
+      setTimeout(() => setNotification(null), 5000);
+    }
+  };
+
   const handleWithdraw = async () => {
     if (!user || !wallet || !withdrawAmount) return;
 
     const amount = parseFloat(withdrawAmount);
     if (amount <= 0 || amount > wallet.balance) {
-      alert('Некорректная сумма для вывода');
+      setNotification({
+        type: 'error',
+        title: 'Некорректная сумма',
+        message: 'Сумма вывода должна быть больше 0 и не превышать доступный баланс'
+      });
+      setTimeout(() => setNotification(null), 5000);
+      return;
+    }
+
+    if (!stripeConnectStatus || stripeConnectStatus.status !== 'connected' || !stripeConnectStatus.payouts_enabled) {
+      setNotification({
+        type: 'error',
+        title: 'Stripe не подключён',
+        message: 'Для вывода средств необходимо подключить и настроить Stripe аккаунт'
+      });
+      setTimeout(() => setNotification(null), 5000);
       return;
     }
 
     try {
-      const { error } = await getSupabase()
-        .from('transactions')
-        .insert({
-          wallet_id: wallet.id,
-          type: 'withdrawal',
-          amount: amount,
-          status: 'pending',
-          description: `Вывод средств $${amount.toFixed(2)}`,
-          reference_type: 'withdrawal'
+      const supabase = getSupabase();
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        setNotification({
+          type: 'error',
+          title: 'Ошибка авторизации',
+          message: 'Необходимо войти в систему'
         });
+        return;
+      }
 
-      if (error) throw error;
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-wallet-withdrawal`;
 
-      alert('Запрос на вывод создан. Средства будут переведены после проверки администратором.');
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          amount,
+          currency: profileCurrency
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Не удалось создать запрос на вывод');
+      }
+
+      setNotification({
+        type: 'success',
+        title: 'Запрос на вывод создан',
+        message: 'Средства будут переведены на ваш Stripe аккаунт в ближайшее время'
+      });
+      setTimeout(() => setNotification(null), 5000);
+
       setShowWithdrawModal(false);
       setWithdrawAmount('');
+      await loadProfileBalance();
+      await loadWalletData();
       await loadTransactions();
     } catch (error) {
       console.error('Error creating withdrawal:', error);
-      alert('Ошибка при создании запроса на вывод');
+      setNotification({
+        type: 'error',
+        title: 'Ошибка вывода',
+        message: (error as Error).message
+      });
+      setTimeout(() => setNotification(null), 5000);
     }
   };
 
@@ -285,17 +446,27 @@ export default function WalletPage() {
   const getStatusBadge = (status: string) => {
     const variants: Record<string, 'default' | 'secondary' | 'destructive'> = {
       completed: 'default',
+      processing: 'secondary',
       pending: 'secondary',
       failed: 'destructive',
-      cancelled: 'destructive'
+      cancelled: 'destructive',
+      expired: 'destructive',
+      blocked: 'destructive',
+      disputed: 'destructive',
+      refunded: 'secondary'
     };
     const labels: Record<string, string> = {
       completed: 'Завершено',
+      processing: 'Обрабатывается',
       pending: 'В обработке',
       failed: 'Ошибка',
-      cancelled: 'Отменено'
+      cancelled: 'Отменено',
+      expired: 'Истёк срок',
+      blocked: 'Заблокировано',
+      disputed: 'Спор / Чарджбэк',
+      refunded: 'Возврат'
     };
-    return <Badge variant={variants[status] || 'secondary'}>{labels[status] || status}</Badge>;
+    return <Badge variant={variants[status] || 'secondary'}>{labels[status] || 'Неизвестно'}</Badge>;
   };
 
   const formatDate = (date: string) => {
@@ -342,6 +513,32 @@ export default function WalletPage() {
     >
       <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
         <h1 className="text-3xl font-bold mb-8">Кошелёк</h1>
+
+        {notification && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className={`mb-6 p-4 rounded-lg border-l-4 flex items-start justify-between ${
+              notification.type === 'success'
+                ? 'bg-green-50 border-green-500 text-green-900'
+                : notification.type === 'error'
+                ? 'bg-red-50 border-red-500 text-red-900'
+                : 'bg-blue-50 border-blue-500 text-blue-900'
+            }`}
+          >
+            <div className="flex-1">
+              <h3 className="font-semibold mb-1">{notification.title}</h3>
+              <p className="text-sm opacity-90">{notification.message}</p>
+            </div>
+            <button
+              onClick={() => setNotification(null)}
+              className="ml-4 text-current opacity-60 hover:opacity-100 transition-opacity"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </motion.div>
+        )}
 
         <div className="grid gap-6 mb-8">
           <Card className="bg-gradient-to-br from-[#6FE7C8] to-[#3F7F6E] text-white overflow-hidden relative">
@@ -427,6 +624,58 @@ export default function WalletPage() {
               </CardContent>
             </Card>
           </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Вывод средств через Stripe</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loadingStripeStatus ? (
+                <div className="text-center py-4">
+                  <div className="inline-block h-6 w-6 animate-spin rounded-full border-4 border-solid border-[#6FE7C8] border-r-transparent"></div>
+                  <p className="mt-2 text-sm text-[#3F7F6E]">Загрузка статуса...</p>
+                </div>
+              ) : stripeConnectStatus && stripeConnectStatus.status === 'connected' ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    {stripeConnectStatus.onboarding_complete && stripeConnectStatus.payouts_enabled ? (
+                      <>
+                        <Badge variant="default" className="bg-green-500">Stripe подключён</Badge>
+                        <span className="text-sm text-gray-600">Выводы доступны</span>
+                      </>
+                    ) : (
+                      <>
+                        <Badge variant="secondary">Настройка не завершена</Badge>
+                        <span className="text-sm text-gray-600">Требуется завершить onboarding</span>
+                      </>
+                    )}
+                  </div>
+                  {!stripeConnectStatus.onboarding_complete && (
+                    <Button
+                      onClick={handleConnectStripe}
+                      variant="outline"
+                      size="sm"
+                    >
+                      Продолжить настройку Stripe
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-600">
+                    Для вывода средств на банковский счёт необходимо подключить Stripe аккаунт
+                  </p>
+                  <Button
+                    onClick={handleConnectStripe}
+                    variant="default"
+                    className="bg-[#6FE7C8] hover:bg-[#5DD6B7] text-[#3F7F6E]"
+                  >
+                    Подключить Stripe для вывода
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         <Card>

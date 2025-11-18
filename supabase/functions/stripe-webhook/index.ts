@@ -215,6 +215,86 @@ Deno.serve(async (req: Request) => {
       }
 
       console.log("Successfully processed deposit for user", user_id, "amount:", amount);
+    } else if (event.type === "checkout.session.expired") {
+      console.log("Processing checkout.session.expired event");
+      const session = event.data.object as Stripe.Checkout.Session;
+      const { transaction_id } = session.metadata || {};
+
+      if (transaction_id) {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+        const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+        await supabase
+          .from("transactions")
+          .update({
+            status: "expired",
+            provider_status: "expired",
+          })
+          .eq("id", transaction_id)
+          .eq("status", "pending");
+
+        console.log("Transaction marked as expired:", transaction_id);
+      }
+    } else if (event.type === "payment_intent.payment_failed") {
+      console.log("Processing payment_intent.payment_failed event");
+      const paymentIntent = event.data.object as Stripe.PaymentIntent;
+      const { transaction_id } = paymentIntent.metadata || {};
+
+      if (transaction_id) {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+        const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+        await supabase
+          .from("transactions")
+          .update({
+            status: "failed",
+            provider_status: "payment_failed",
+          })
+          .eq("id", transaction_id)
+          .eq("status", "pending");
+
+        console.log("Transaction marked as failed:", transaction_id);
+      }
+    } else if (event.type === "charge.dispute.created") {
+      console.log("Processing charge.dispute.created event");
+      const dispute = event.data.object as Stripe.Dispute;
+
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+      await supabase
+        .from("transactions")
+        .update({
+          status: "disputed",
+          provider_status: "dispute_created",
+        })
+        .eq("provider_payment_id", dispute.charge)
+        .in("status", ["completed", "processing"]);
+
+      console.log("Transaction marked as disputed for charge:", dispute.charge);
+    } else if (event.type === "transfer.failed") {
+      console.log("Processing transfer.failed event");
+      const transfer = event.data.object as Stripe.Transfer;
+      const { transaction_id } = transfer.metadata || {};
+
+      if (transaction_id) {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+        const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+        await supabase
+          .from("transactions")
+          .update({
+            status: "failed",
+            provider_status: transfer.failure_code || "transfer_failed",
+          })
+          .eq("id", transaction_id);
+
+        console.log("Withdrawal marked as failed:", transaction_id);
+      }
     } else {
       console.log("Event type not handled:", event.type);
     }
