@@ -87,7 +87,7 @@ export default function LearningPrompt() {
         transition={{ type: 'spring', stiffness: 200, damping: 25 }}
         className="fixed bottom-6 left-4 right-4 sm:left-auto sm:right-6 z-50 max-w-sm sm:max-w-sm mx-auto sm:mx-0"
       >
-        <Card className="shadow-2xl border-2 border-[#6FE7C8]/30 backdrop-blur-md bg-white/60">
+        <Card className="shadow-2xl border-2 border-[#6FE7C8] bg-gradient-to-br from-white to-[#EFFFF8]">
           <div className="p-5">
             <button
               onClick={handleDismiss}

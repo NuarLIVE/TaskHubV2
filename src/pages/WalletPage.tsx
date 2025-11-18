@@ -663,7 +663,7 @@ export default function WalletPage() {
                   )}
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-3 px-2 pb-2">
                   <p className="text-sm text-gray-600">
                     Для вывода средств на банковский счёт необходимо подключить Stripe аккаунт
                   </p>
