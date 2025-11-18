@@ -165,10 +165,10 @@ Deno.serve(async (req: Request) => {
         wallet_id: wallet.id,
         type: "withdrawal",
         amount: amount,
-        status: "processing",
+        status: "pending",
         description: `Вывод средств $${amount.toFixed(2)} на Stripe аккаунт`,
         provider: "stripe_connect",
-        provider_status: "processing",
+        provider_status: "pending",
       })
       .select()
       .single();
