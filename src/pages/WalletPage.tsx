@@ -73,6 +73,7 @@ export default function WalletPage() {
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [depositAmount, setDepositAmount] = useState('');
   const [isSubmittingDeposit, setIsSubmittingDeposit] = useState(false);
+  const [isSubmittingWithdraw, setIsSubmittingWithdraw] = useState(false);
   const [idempotencyKey, setIdempotencyKey] = useState('');
   const [notification, setNotification] = useState<{
     type: 'success' | 'error' | 'info';
@@ -372,7 +373,7 @@ export default function WalletPage() {
   };
 
   const handleWithdraw = async () => {
-    if (!user || !wallet || !withdrawAmount) return;
+    if (!user || !wallet || !withdrawAmount || isSubmittingWithdraw) return;
 
     const amount = parseFloat(withdrawAmount);
     if (amount <= 0 || amount > wallet.balance) {
@@ -394,6 +395,8 @@ export default function WalletPage() {
       setTimeout(() => setNotification(null), 5000);
       return;
     }
+
+    setIsSubmittingWithdraw(true);
 
     try {
       const supabase = getSupabase();
@@ -437,6 +440,7 @@ export default function WalletPage() {
 
       setShowWithdrawModal(false);
       setWithdrawAmount('');
+      setIsSubmittingWithdraw(false);
       await loadProfileBalance();
       await loadWalletData();
       await loadTransactions();
@@ -448,6 +452,7 @@ export default function WalletPage() {
         message: (error as Error).message
       });
       setTimeout(() => setNotification(null), 5000);
+      setIsSubmittingWithdraw(false);
     }
   };
 
@@ -648,7 +653,10 @@ export default function WalletPage() {
                 )}
                 <div className="flex gap-3">
                   <Button
-                    onClick={() => setShowWithdrawModal(true)}
+                    onClick={() => {
+                      setShowWithdrawModal(true);
+                      setIsSubmittingWithdraw(false);
+                    }}
                     variant="secondary"
                     className="bg-white text-[#3F7F6E] hover:bg-white/90"
                   >
@@ -964,13 +972,25 @@ export default function WalletPage() {
                 Средства будут переведены на ваш счет в течение 1-3 рабочих дней
               </div>
               <div className="flex gap-3">
-                <Button onClick={handleWithdraw} className="flex-1">
-                  Вывести
+                <Button
+                  onClick={handleWithdraw}
+                  className="flex-1"
+                  disabled={isSubmittingWithdraw}
+                >
+                  {isSubmittingWithdraw ? (
+                    <>
+                      <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      Принято, ожидайте...
+                    </>
+                  ) : (
+                    'Вывести'
+                  )}
                 </Button>
                 <Button
                   onClick={() => setShowWithdrawModal(false)}
                   variant="outline"
                   className="flex-1"
+                  disabled={isSubmittingWithdraw}
                 >
                   Отмена
                 </Button>
