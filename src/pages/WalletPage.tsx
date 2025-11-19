@@ -62,6 +62,9 @@ export default function WalletPage() {
   const [profileCurrency, setProfileCurrency] = useState<string>('USD');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalTransactions, setTotalTransactions] = useState(0);
+  const ITEMS_PER_PAGE = 15;
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
@@ -158,6 +161,12 @@ export default function WalletPage() {
     }
   }, [user]);
 
+  useEffect(() => {
+    if (user) {
+      loadTransactions(1);
+    }
+  }, [filterType, filterStatus, searchQuery]);
+
   const cleanupExpiredDeposits = async () => {
     try {
       console.log('[WalletPage] Starting cleanup of expired deposits...');
@@ -225,7 +234,7 @@ export default function WalletPage() {
     }
   };
 
-  const loadTransactions = async () => {
+  const loadTransactions = async (page = 1) => {
     if (!user) return;
 
     try {
@@ -237,14 +246,48 @@ export default function WalletPage() {
 
       if (!walletData) return;
 
-      const { data, error } = await getSupabase()
+      const from = (page - 1) * ITEMS_PER_PAGE;
+      const to = from + ITEMS_PER_PAGE - 1;
+
+      // Build query with filters
+      let countQuery = getSupabase()
+        .from('transactions')
+        .select('*', { count: 'exact', head: true })
+        .eq('wallet_id', walletData.id);
+
+      let dataQuery = getSupabase()
         .from('transactions')
         .select('*')
-        .eq('wallet_id', walletData.id)
-        .order('created_at', { ascending: false });
+        .eq('wallet_id', walletData.id);
+
+      // Apply filters
+      if (filterType !== 'all') {
+        countQuery = countQuery.eq('type', filterType);
+        dataQuery = dataQuery.eq('type', filterType);
+      }
+
+      if (filterStatus !== 'all') {
+        countQuery = countQuery.eq('status', filterStatus);
+        dataQuery = dataQuery.eq('status', filterStatus);
+      }
+
+      if (searchQuery) {
+        countQuery = countQuery.ilike('description', `%${searchQuery}%`);
+        dataQuery = dataQuery.ilike('description', `%${searchQuery}%`);
+      }
+
+      // Get total count with filters
+      const { count } = await countQuery;
+      setTotalTransactions(count || 0);
+
+      // Get paginated data with filters
+      const { data, error } = await dataQuery
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
       if (error) throw error;
       setTransactions(data || []);
+      setCurrentPage(page);
     } catch (error) {
       console.error('Error loading transactions:', error);
     }
@@ -455,12 +498,8 @@ export default function WalletPage() {
     }
   };
 
-  const filteredTransactions = transactions.filter((t) => {
-    const matchesSearch = t.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = filterType === 'all' || t.type === filterType;
-    const matchesStatus = filterStatus === 'all' || t.status === filterStatus;
-    return matchesSearch && matchesType && matchesStatus;
-  });
+  // Transactions are now filtered on the server, so we use them directly
+  const filteredTransactions = transactions;
 
   const getTransactionIcon = (type: string) => {
     if (type === 'income' || type === 'deposit') {
@@ -813,6 +852,71 @@ export default function WalletPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Pagination */}
+            {totalTransactions > ITEMS_PER_PAGE && (
+              <div className="mt-6 flex items-center justify-between border-t pt-4">
+                <div className="text-sm text-[#3F7F6E]">
+                  Показано {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, totalTransactions)}-
+                  {Math.min(currentPage * ITEMS_PER_PAGE, totalTransactions)} из {totalTransactions}
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => loadTransactions(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="border-[#2F9C95] text-[#2F9C95] hover:bg-[#EFFFF8]"
+                  >
+                    Назад
+                  </Button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.ceil(totalTransactions / ITEMS_PER_PAGE) }, (_, i) => i + 1)
+                      .filter((page) => {
+                        const totalPages = Math.ceil(totalTransactions / ITEMS_PER_PAGE);
+                        if (totalPages <= 7) return true;
+                        if (page === 1 || page === totalPages) return true;
+                        if (page >= currentPage - 1 && page <= currentPage + 1) return true;
+                        if (page === currentPage - 2 || page === currentPage + 2) return '...';
+                        return false;
+                      })
+                      .map((page, idx, arr) => {
+                        if (page === '...') {
+                          return (
+                            <span key={`ellipsis-${idx}`} className="px-2 text-[#3F7F6E]">
+                              ...
+                            </span>
+                          );
+                        }
+                        return (
+                          <Button
+                            key={page}
+                            variant={currentPage === page ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => loadTransactions(page as number)}
+                            className={
+                              currentPage === page
+                                ? 'bg-[#2F9C95] text-white hover:bg-[#267D77]'
+                                : 'border-[#2F9C95] text-[#2F9C95] hover:bg-[#EFFFF8]'
+                            }
+                          >
+                            {page}
+                          </Button>
+                        );
+                      })}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => loadTransactions(currentPage + 1)}
+                    disabled={currentPage >= Math.ceil(totalTransactions / ITEMS_PER_PAGE)}
+                    className="border-[#2F9C95] text-[#2F9C95] hover:bg-[#EFFFF8]"
+                  >
+                    Вперёд
+                  </Button>
+                </div>
               </div>
             )}
           </CardContent>
