@@ -43,8 +43,8 @@ const LANGUAGE_TO_CURRENCY: Record<string, string> = {
 
 export function RegionProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const [language, setLanguageState] = useState<string>('en');
-  const [currency, setCurrencyState] = useState<string>('USD');
+  const [language, setLanguageState] = useState<string>('ru');
+  const [currency, setCurrencyState] = useState<string>('RUB');
   const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [exchangeRates, setExchangeRates] = useState<Map<string, ExchangeRate>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
@@ -88,10 +88,10 @@ export function RegionProvider({ children }: { children: ReactNode }) {
       const browserLang = navigator.language.split('-')[0];
       const detectedLang = SUPPORTED_LANGUAGES[browserLang as keyof typeof SUPPORTED_LANGUAGES]
         ? browserLang
-        : 'en';
+        : 'ru';
 
       // Try to detect currency from timezone/locale
-      const detectedCurrency = LANGUAGE_TO_CURRENCY[detectedLang] || 'USD';
+      const detectedCurrency = LANGUAGE_TO_CURRENCY[detectedLang] || 'RUB';
 
       // If user is not logged in, use detected values
       if (!user) {
@@ -101,8 +101,8 @@ export function RegionProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error('Error detecting region:', error);
-      setLanguageState('en');
-      setCurrencyState('USD');
+      setLanguageState('ru');
+      setCurrencyState('RUB');
     } finally {
       setIsLoading(false);
     }
