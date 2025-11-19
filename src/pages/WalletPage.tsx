@@ -690,7 +690,7 @@ export default function WalletPage() {
                         onClick={handleConnectStripe}
                         variant="default"
                         size="sm"
-                        className="bg-yellow-500 hover:bg-yellow-600 text-white"
+                        className="bg-yellow-500 hover:bg-yellow-600 text-white w-full sm:w-auto"
                       >
                         Сменить аккаунт Stripe
                       </Button>
