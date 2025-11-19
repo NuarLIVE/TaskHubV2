@@ -536,7 +536,7 @@ export function ContactPage() {
                 <div>
                   <h3 className="text-xl font-semibold mb-2 text-gray-900">Email</h3>
                   <p className="text-sm text-gray-600 mb-4">Отправьте нам письмо</p>
-                  <Button asChild variant="outline" className="w-full">
+                  <Button asChild className="w-full bg-[#6FE7C8] hover:bg-[#5DD6B7] text-gray-900">
                     <a href="mailto:support@freelancehub.com">
                       Написать
                     </a>
@@ -549,11 +549,11 @@ export function ContactPage() {
         </div>
 
         <Card className="border-[#6FE7C8]/20">
-          <CardHeader>
+          <CardHeader className="px-6 sm:px-8">
             <CardTitle className="text-2xl">Отправить сообщение</CardTitle>
             <p className="text-sm text-gray-600">Мы ответим в течение 24 часов</p>
           </CardHeader>
-          <CardContent className="grid gap-6">
+          <CardContent className="grid gap-6 px-6 sm:px-8 pb-8">
             <div className="grid gap-2">
               <label className="text-sm font-medium text-gray-900">Ваше имя</label>
               <Input placeholder="Как вас зовут?" />
