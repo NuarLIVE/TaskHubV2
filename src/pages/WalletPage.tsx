@@ -72,6 +72,8 @@ export default function WalletPage() {
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [depositAmount, setDepositAmount] = useState('');
+  const [isSubmittingDeposit, setIsSubmittingDeposit] = useState(false);
+  const [idempotencyKey, setIdempotencyKey] = useState('');
   const [notification, setNotification] = useState<{
     type: 'success' | 'error' | 'info';
     title: string;
@@ -450,7 +452,7 @@ export default function WalletPage() {
   };
 
   const handleDeposit = async () => {
-    if (!user || !depositAmount) return;
+    if (!user || !depositAmount || isSubmittingDeposit) return;
 
     const amount = parseFloat(depositAmount);
     if (amount <= 0 || isNaN(amount)) {
@@ -458,12 +460,15 @@ export default function WalletPage() {
       return;
     }
 
+    setIsSubmittingDeposit(true);
+
     try {
       const supabase = getSupabase();
       const { data: { session } } = await supabase.auth.getSession();
 
       if (!session) {
         alert('Ошибка авторизации');
+        setIsSubmittingDeposit(false);
         return;
       }
 
@@ -477,7 +482,8 @@ export default function WalletPage() {
         },
         body: JSON.stringify({
           amount,
-          currency: profileCurrency
+          currency: profileCurrency,
+          idempotency_key: idempotencyKey
         }),
       });
 
@@ -495,6 +501,7 @@ export default function WalletPage() {
     } catch (error) {
       console.error('Error creating deposit:', error);
       alert('Ошибка при создании платежа: ' + (error as Error).message);
+      setIsSubmittingDeposit(false);
     }
   };
 
@@ -649,7 +656,11 @@ export default function WalletPage() {
                     Вывести
                   </Button>
                   <Button
-                    onClick={() => setShowDepositModal(true)}
+                    onClick={() => {
+                      setShowDepositModal(true);
+                      setIdempotencyKey(crypto.randomUUID());
+                      setIsSubmittingDeposit(false);
+                    }}
                     variant="outline"
                     className="text-white border-white hover:bg-white/10"
                   >
@@ -857,11 +868,14 @@ export default function WalletPage() {
 
             {/* Pagination */}
             {totalTransactions > ITEMS_PER_PAGE && (
-              <div className="mt-6 flex items-center justify-center gap-2 border-t pt-4 px-4">
+              <div className="mt-6 mb-4 flex items-center justify-center gap-2 border-t pt-4 px-4">
                 <Button
                   variant="outline"
                   size="default"
-                  onClick={() => loadTransactions(currentPage - 1)}
+                  onClick={() => {
+                    loadTransactions(currentPage - 1);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
                   disabled={currentPage === 1}
                   className="h-10"
                 >
@@ -891,7 +905,10 @@ export default function WalletPage() {
                       key={page}
                       variant={currentPage === page ? 'default' : 'outline'}
                       size="default"
-                      onClick={() => loadTransactions(page)}
+                      onClick={() => {
+                        loadTransactions(page);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
                       className="h-10 w-10"
                     >
                       {page}
@@ -902,7 +919,10 @@ export default function WalletPage() {
                 <Button
                   variant="outline"
                   size="default"
-                  onClick={() => loadTransactions(currentPage + 1)}
+                  onClick={() => {
+                    loadTransactions(currentPage + 1);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
                   disabled={currentPage >= Math.ceil(totalTransactions / ITEMS_PER_PAGE)}
                   className="h-10"
                 >
@@ -987,13 +1007,25 @@ export default function WalletPage() {
                 После нажатия кнопки вы будете перенаправлены на защищённую страницу оплаты Stripe для безопасного проведения платежа.
               </div>
               <div className="flex gap-3">
-                <Button onClick={handleDeposit} className="flex-1">
-                  Пополнить
+                <Button
+                  onClick={handleDeposit}
+                  className="flex-1"
+                  disabled={isSubmittingDeposit}
+                >
+                  {isSubmittingDeposit ? (
+                    <>
+                      <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      Принято, ожидайте...
+                    </>
+                  ) : (
+                    'Пополнить'
+                  )}
                 </Button>
                 <Button
                   onClick={() => setShowDepositModal(false)}
                   variant="outline"
                   className="flex-1"
+                  disabled={isSubmittingDeposit}
                 >
                   Отмена
                 </Button>

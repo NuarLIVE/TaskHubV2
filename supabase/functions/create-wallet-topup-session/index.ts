@@ -11,6 +11,7 @@ const corsHeaders = {
 interface TopupRequest {
   amount: number;
   currency?: string;
+  idempotency_key?: string;
 }
 
 Deno.serve(async (req: Request) => {
@@ -51,10 +52,14 @@ Deno.serve(async (req: Request) => {
       throw new Error("Unauthorized: " + (userError?.message || "No user found"));
     }
 
-    const { amount, currency = "USD" }: TopupRequest = await req.json();
+    const { amount, currency = "USD", idempotency_key }: TopupRequest = await req.json();
 
     if (!amount || amount <= 0) {
       throw new Error("Invalid amount");
+    }
+
+    if (!idempotency_key) {
+      throw new Error("Missing idempotency_key");
     }
 
     let { data: wallet, error: walletError } = await supabaseClient
@@ -89,50 +94,70 @@ Deno.serve(async (req: Request) => {
 
     const expiresAt = new Date(Date.now() + 20 * 60 * 1000).toISOString();
 
-    const { data: transaction, error: transactionError } = await supabaseClient
+    const { data: existingTransaction } = await supabaseClient
       .from("transactions")
-      .insert({
-        wallet_id: wallet.id,
-        type: "deposit",
-        status: "pending",
-        amount: amount,
-        description: `Stripe пополнение кошелька $${amount.toFixed(2)}`,
-        reference_type: "deposit",
-        provider: "stripe",
-        expires_at: expiresAt,
-      })
-      .select()
-      .single();
+      .select("*")
+      .eq("idempotency_key", idempotency_key)
+      .maybeSingle();
 
-    if (transactionError) {
-      throw new Error("Failed to create transaction: " + transactionError.message);
+    let transaction;
+
+    if (existingTransaction) {
+      transaction = existingTransaction;
+    } else {
+      const { data: newTransaction, error: transactionError } = await supabaseClient
+        .from("transactions")
+        .insert({
+          wallet_id: wallet.id,
+          type: "deposit",
+          status: "pending",
+          amount: amount,
+          description: `Stripe пополнение кошелька $${amount.toFixed(2)}`,
+          reference_type: "deposit",
+          provider: "stripe",
+          expires_at: expiresAt,
+          idempotency_key: idempotency_key,
+        })
+        .select()
+        .single();
+
+      if (transactionError) {
+        throw new Error("Failed to create transaction: " + transactionError.message);
+      }
+
+      transaction = newTransaction;
     }
 
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      payment_method_types: ["card"],
-      line_items: [
-        {
-          price_data: {
-            currency: currency.toLowerCase(),
-            product_data: {
-              name: "Wallet Top-up",
-              description: `Add ${amount} ${currency} to your TaskHub wallet`,
+    const session = await stripe.checkout.sessions.create(
+      {
+        mode: "payment",
+        payment_method_types: ["card"],
+        line_items: [
+          {
+            price_data: {
+              currency: currency.toLowerCase(),
+              product_data: {
+                name: "Wallet Top-up",
+                description: `Add ${amount} ${currency} to your TaskHub wallet`,
+              },
+              unit_amount: Math.round(amount * 100),
             },
-            unit_amount: Math.round(amount * 100),
+            quantity: 1,
           },
-          quantity: 1,
+        ],
+        success_url: `${frontendUrl}/#/wallet?deposit=success`,
+        cancel_url: `${frontendUrl}/#/wallet?deposit=cancelled`,
+        metadata: {
+          user_id: user.id,
+          wallet_id: wallet.id,
+          transaction_id: transaction.id,
+          currency: currency,
         },
-      ],
-      success_url: `${frontendUrl}/#/wallet?deposit=success`,
-      cancel_url: `${frontendUrl}/#/wallet?deposit=cancelled`,
-      metadata: {
-        user_id: user.id,
-        wallet_id: wallet.id,
-        transaction_id: transaction.id,
-        currency: currency,
       },
-    });
+      {
+        idempotencyKey: idempotency_key,
+      }
+    );
 
     await supabaseClient
       .from("transactions")
