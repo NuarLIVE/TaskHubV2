@@ -29,7 +29,7 @@ export default function AdminFinance() {
         profile:user_id(name, email)
       `)
       .order('created_at', { ascending: false })
-      .limit(100);
+      .limit(50);
 
     const { data: profilesData } = await supabase
       .from('profiles')
@@ -197,40 +197,27 @@ export default function AdminFinance() {
                     <thead>
                       <tr className="border-b-2 border-gray-200 text-left text-sm text-gray-600">
                         <th className="pb-4 pt-2 font-semibold">Дата</th>
-                        <th className="pb-4 pt-2 font-semibold">Пользователь</th>
-                        <th className="pb-4 pt-2 font-semibold">Тип</th>
                         <th className="pb-4 pt-2 font-semibold text-right">Сумма</th>
-                        <th className="pb-4 pt-2 font-semibold">Описание</th>
+                        <th className="pb-4 pt-2 font-semibold">Тип</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                      {transactions.map((tx) => (
+                      {transactions
+                        .filter(tx => tx.entry_type === 'deposit' || tx.entry_type === 'withdrawal')
+                        .map((tx) => (
                         <tr key={tx.id} className="hover:bg-gray-50 transition-colors">
                           <td className="py-4 text-sm text-gray-600">
                             {formatDate(tx.created_at)}
                           </td>
-                          <td className="py-4 text-sm">
-                            {tx.profile ? (
-                              <div>
-                                <p className="font-medium text-gray-900">{tx.profile.name}</p>
-                                <p className="text-xs text-gray-500">{tx.profile.email}</p>
-                              </div>
-                            ) : (
-                              <span className="text-gray-500">—</span>
-                            )}
+                          <td className="py-4 text-right">
+                            <span className={`font-semibold text-base ${tx.entry_type === 'deposit' ? 'text-green-600' : 'text-red-600'}`}>
+                              {tx.entry_type === 'deposit' ? '+' : '-'}${Math.abs(Number(tx.amount) / 100).toFixed(2)}
+                            </span>
                           </td>
                           <td className="py-4">
                             <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${getTypeColor(tx.entry_type)} bg-gray-50`}>
                               {getTypeLabel(tx.entry_type)}
                             </span>
-                          </td>
-                          <td className="py-4 text-right">
-                            <span className={`font-semibold text-base ${Number(tx.amount) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                              {Number(tx.amount) >= 0 ? '+' : ''}${(Number(tx.amount) / 100).toFixed(2)}
-                            </span>
-                          </td>
-                          <td className="py-4 text-sm text-gray-600 max-w-xs truncate">
-                            {tx.description || '—'}
                           </td>
                         </tr>
                       ))}
@@ -238,32 +225,21 @@ export default function AdminFinance() {
                   </table>
                 </div>
                 <div className="md:hidden space-y-3">
-                  {transactions.map((tx) => (
+                  {transactions
+                    .filter(tx => tx.entry_type === 'deposit' || tx.entry_type === 'withdrawal')
+                    .map((tx) => (
                     <div key={tx.id} className="p-4 border border-gray-200 rounded-lg bg-white hover:border-[#6FE7C8]/50 transition-colors">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1 min-w-0">
-                          {tx.profile ? (
-                            <div>
-                              <p className="font-medium text-gray-900 text-sm">{tx.profile.name}</p>
-                              <p className="text-xs text-gray-500 truncate">{tx.profile.email}</p>
-                            </div>
-                          ) : (
-                            <span className="text-gray-500 text-sm">—</span>
-                          )}
-                        </div>
-                        <span className={`font-semibold text-base ml-2 ${Number(tx.amount) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {Number(tx.amount) >= 0 ? '+' : ''}${(Number(tx.amount) / 100).toFixed(2)}
+                      <div className="flex items-start justify-between mb-2">
+                        <span className="text-xs text-gray-500">{formatDate(tx.created_at)}</span>
+                        <span className={`font-semibold text-base ml-2 ${tx.entry_type === 'deposit' ? 'text-green-600' : 'text-red-600'}`}>
+                          {tx.entry_type === 'deposit' ? '+' : '-'}${Math.abs(Number(tx.amount) / 100).toFixed(2)}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
-                        <span>{formatDate(tx.created_at)}</span>
+                      <div className="flex items-center justify-end">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getTypeColor(tx.entry_type)} bg-gray-50`}>
                           {getTypeLabel(tx.entry_type)}
                         </span>
                       </div>
-                      {tx.description && (
-                        <p className="text-xs text-gray-600 mt-2 line-clamp-2">{tx.description}</p>
-                      )}
                     </div>
                   ))}
                 </div>
