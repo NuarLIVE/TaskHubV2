@@ -127,8 +127,8 @@ export function RegionProvider({ children }: { children: ReactNode }) {
         const browserLang = navigator.language.split('-')[0];
         const detectedLang = SUPPORTED_LANGUAGES[browserLang as keyof typeof SUPPORTED_LANGUAGES]
           ? browserLang
-          : 'en';
-        const detectedCurrency = LANGUAGE_TO_CURRENCY[detectedLang] || 'USD';
+          : 'ru';
+        const detectedCurrency = LANGUAGE_TO_CURRENCY[detectedLang] || 'RUB';
 
         await getSupabase().from('user_preferences').insert({
           user_id: user!.id,
@@ -142,6 +142,8 @@ export function RegionProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error('Error loading user preferences:', error);
+      setLanguageState('ru');
+      setCurrencyState('RUB');
     } finally {
       setIsLoading(false);
     }
