@@ -603,7 +603,7 @@ export default function MarketPage() {
           )}
 
           {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 mt-8">
+            <div className="flex items-center justify-center gap-2 mt-8 px-4">
               <Button
                 variant="outline"
                 size="default"
@@ -611,31 +611,38 @@ export default function MarketPage() {
                 disabled={currentPage === 1}
                 className="h-10"
               >
-                <ChevronLeft className="h-4 w-4" />
+                &lt;
               </Button>
 
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
-                if (
-                  page === 1 ||
-                  page === totalPages ||
-                  (page >= currentPage - 1 && page <= currentPage + 1)
-                ) {
-                  return (
-                    <Button
-                      key={page}
-                      variant={page === currentPage ? 'default' : 'outline'}
-                      size="default"
-                      onClick={() => goToPage(page)}
-                      className="h-10 w-10"
-                    >
-                      {page}
-                    </Button>
-                  );
-                } else if (page === currentPage - 2 || page === currentPage + 2) {
-                  return <span key={page} className="px-2">...</span>;
+              {(() => {
+                const pages: number[] = [];
+
+                if (currentPage === 1) {
+                  pages.push(1);
+                  if (totalPages >= 2) pages.push(2);
+                  if (totalPages >= 3) pages.push(3);
+                } else if (currentPage === totalPages) {
+                  if (totalPages >= 3) pages.push(totalPages - 2);
+                  if (totalPages >= 2) pages.push(totalPages - 1);
+                  pages.push(totalPages);
+                } else {
+                  pages.push(currentPage - 1);
+                  pages.push(currentPage);
+                  if (currentPage + 1 <= totalPages) pages.push(currentPage + 1);
                 }
-                return null;
-              })}
+
+                return pages.map((page) => (
+                  <Button
+                    key={page}
+                    variant={page === currentPage ? 'default' : 'outline'}
+                    size="default"
+                    onClick={() => goToPage(page)}
+                    className="h-10 w-10"
+                  >
+                    {page}
+                  </Button>
+                ));
+              })()}
 
               <Button
                 variant="outline"
@@ -644,7 +651,7 @@ export default function MarketPage() {
                 disabled={currentPage === totalPages}
                 className="h-10"
               >
-                <ChevronRight className="h-4 w-4" />
+                &gt;
               </Button>
             </div>
           )}

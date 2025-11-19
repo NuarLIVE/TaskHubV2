@@ -657,17 +657,33 @@ export default function RecommendationsPage() {
             </div>
 
             {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 mt-8">
+              <div className="flex items-center justify-center gap-2 mt-8 px-4">
                 <Button
                   variant="outline"
                   onClick={() => goToPage(currentPage - 1)}
                   disabled={currentPage === 1}
                   className="h-10 w-10 p-0"
                 >
-                  <ChevronLeft className="h-5 w-5" />
+                  &lt;
                 </Button>
-                <div className="flex gap-2">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                {(() => {
+                  const pages: number[] = [];
+
+                  if (currentPage === 1) {
+                    pages.push(1);
+                    if (totalPages >= 2) pages.push(2);
+                    if (totalPages >= 3) pages.push(3);
+                  } else if (currentPage === totalPages) {
+                    if (totalPages >= 3) pages.push(totalPages - 2);
+                    if (totalPages >= 2) pages.push(totalPages - 1);
+                    pages.push(totalPages);
+                  } else {
+                    pages.push(currentPage - 1);
+                    pages.push(currentPage);
+                    if (currentPage + 1 <= totalPages) pages.push(currentPage + 1);
+                  }
+
+                  return pages.map((page) => (
                     <Button
                       key={page}
                       variant={currentPage === page ? 'default' : 'outline'}
@@ -680,15 +696,15 @@ export default function RecommendationsPage() {
                     >
                       {page}
                     </Button>
-                  ))}
-                </div>
+                  ));
+                })()}
                 <Button
                   variant="outline"
                   onClick={() => goToPage(currentPage + 1)}
                   disabled={currentPage === totalPages}
                   className="h-10 w-10 p-0"
                 >
-                  <ChevronRight className="h-5 w-5" />
+                  &gt;
                 </Button>
               </div>
             )}

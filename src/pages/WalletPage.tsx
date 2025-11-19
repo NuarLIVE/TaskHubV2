@@ -857,7 +857,7 @@ export default function WalletPage() {
 
             {/* Pagination */}
             {totalTransactions > ITEMS_PER_PAGE && (
-              <div className="mt-6 flex items-center justify-between border-t pt-4">
+              <div className="mt-6 flex items-center justify-between border-t pt-4 px-4">
                 <div className="text-sm text-[#3F7F6E]">
                   Показано {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, totalTransactions)}-
                   {Math.min(currentPage * ITEMS_PER_PAGE, totalTransactions)} из {totalTransactions}
@@ -870,43 +870,42 @@ export default function WalletPage() {
                     disabled={currentPage === 1}
                     className="border-[#2F9C95] text-[#2F9C95] hover:bg-[#EFFFF8]"
                   >
-                    Назад
+                    &lt;
                   </Button>
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: Math.ceil(totalTransactions / ITEMS_PER_PAGE) }, (_, i) => i + 1)
-                      .filter((page) => {
-                        const totalPages = Math.ceil(totalTransactions / ITEMS_PER_PAGE);
-                        if (totalPages <= 7) return true;
-                        if (page === 1 || page === totalPages) return true;
-                        if (page >= currentPage - 1 && page <= currentPage + 1) return true;
-                        if (page === currentPage - 2 || page === currentPage + 2) return '...';
-                        return false;
-                      })
-                      .map((page, idx, arr) => {
-                        if (page === '...') {
-                          return (
-                            <span key={`ellipsis-${idx}`} className="px-2 text-[#3F7F6E]">
-                              ...
-                            </span>
-                          );
+                  {(() => {
+                    const totalPages = Math.ceil(totalTransactions / ITEMS_PER_PAGE);
+                    const pages: number[] = [];
+
+                    if (currentPage === 1) {
+                      pages.push(1);
+                      if (totalPages >= 2) pages.push(2);
+                      if (totalPages >= 3) pages.push(3);
+                    } else if (currentPage === totalPages) {
+                      if (totalPages >= 3) pages.push(totalPages - 2);
+                      if (totalPages >= 2) pages.push(totalPages - 1);
+                      pages.push(totalPages);
+                    } else {
+                      pages.push(currentPage - 1);
+                      pages.push(currentPage);
+                      if (currentPage + 1 <= totalPages) pages.push(currentPage + 1);
+                    }
+
+                    return pages.map((page) => (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => loadTransactions(page)}
+                        className={
+                          currentPage === page
+                            ? 'bg-[#2F9C95] text-white hover:bg-[#267D77]'
+                            : 'border-[#2F9C95] text-[#2F9C95] hover:bg-[#EFFFF8]'
                         }
-                        return (
-                          <Button
-                            key={page}
-                            variant={currentPage === page ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => loadTransactions(page as number)}
-                            className={
-                              currentPage === page
-                                ? 'bg-[#2F9C95] text-white hover:bg-[#267D77]'
-                                : 'border-[#2F9C95] text-[#2F9C95] hover:bg-[#EFFFF8]'
-                            }
-                          >
-                            {page}
-                          </Button>
-                        );
-                      })}
-                  </div>
+                      >
+                        {page}
+                      </Button>
+                    ));
+                  })()}
                   <Button
                     variant="outline"
                     size="sm"
@@ -914,7 +913,7 @@ export default function WalletPage() {
                     disabled={currentPage >= Math.ceil(totalTransactions / ITEMS_PER_PAGE)}
                     className="border-[#2F9C95] text-[#2F9C95] hover:bg-[#EFFFF8]"
                   >
-                    Вперёд
+                    &gt;
                   </Button>
                 </div>
               </div>
