@@ -105,7 +105,13 @@ export default function AdminFinance() {
   };
 
   return (
-    <motion.div initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition} className="min-h-screen">
+    <motion.div initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition} className="min-h-screen relative">
+      <div className="absolute inset-0 bg-white/70 backdrop-blur-sm z-10 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-4xl font-bold text-gray-900 mb-2">Скоро...</h2>
+          <p className="text-gray-600">Эта функция находится в разработке</p>
+        </div>
+      </div>
       <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Финансовые операции</h1>

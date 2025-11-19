@@ -497,33 +497,80 @@ export function FAQPage() {
 
 export function ContactPage() {
   return (
-    <motion.div key="contact" initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition} className="min-h-screen bg-background">
-      <section className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8 py-10">
-        <h1 className="text-3xl font-bold mb-6">Контакты</h1>
-
-        <div className="grid sm:grid-cols-2 gap-4 mb-6">
-          <Button asChild size="lg" className="h-auto py-6 flex-col gap-2">
-            <a href="https://t.me/freelancehub_support" target="_blank" rel="noopener noreferrer">
-              <svg className="h-8 w-8" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>
-              <span className="font-semibold">Написать в Telegram</span>
-              <span className="text-xs opacity-80">@freelancehub_support</span>
-            </a>
-          </Button>
-
-          <Button asChild size="lg" variant="outline" className="h-auto py-6 flex-col gap-2">
-            <a href="mailto:support@freelancehub.com">
-              <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-              <span className="font-semibold">Написать на Email</span>
-              <span className="text-xs opacity-80">support@freelancehub.com</span>
-            </a>
-          </Button>
+    <motion.div key="contact" initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition} className="min-h-screen bg-gradient-to-b from-[#EFFFF8]/30 to-background">
+      <section className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-12 md:py-16">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900">Свяжитесь с нами</h1>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            Есть вопросы или предложения? Мы всегда рады помочь!
+          </p>
         </div>
 
-        <Card>
-          <CardHeader><CardTitle>Или отправьте сообщение</CardTitle></CardHeader>
-          <CardContent className="grid gap-4">
-            <div className="grid gap-2"><label className="text-sm font-medium">Ваше сообщение</label><textarea rows={6} className="rounded-md border px-3 py-2 bg-background" placeholder="Опишите вашу проблему или вопрос..." /></div>
-            <Button>Отправить</Button>
+        <div className="grid sm:grid-cols-2 gap-6 mb-8">
+          <Card className="hover:shadow-lg transition-shadow border-[#6FE7C8]/20">
+            <CardContent className="p-8">
+              <div className="flex flex-col items-center text-center gap-4">
+                <div className="h-16 w-16 bg-[#E6F7F2] rounded-full flex items-center justify-center">
+                  <svg className="h-8 w-8 text-[#3F7F6E]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold mb-2 text-gray-900">Telegram</h3>
+                  <p className="text-sm text-gray-600 mb-4">Быстрая поддержка в мессенджере</p>
+                  <Button asChild className="w-full">
+                    <a href="https://t.me/freelancehub_support" target="_blank" rel="noopener noreferrer">
+                      Написать
+                    </a>
+                  </Button>
+                  <p className="text-xs text-gray-500 mt-2">@freelancehub_support</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow border-[#6FE7C8]/20">
+            <CardContent className="p-8">
+              <div className="flex flex-col items-center text-center gap-4">
+                <div className="h-16 w-16 bg-[#E6F7F2] rounded-full flex items-center justify-center">
+                  <svg className="h-8 w-8 text-[#3F7F6E]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold mb-2 text-gray-900">Email</h3>
+                  <p className="text-sm text-gray-600 mb-4">Отправьте нам письмо</p>
+                  <Button asChild variant="outline" className="w-full">
+                    <a href="mailto:support@freelancehub.com">
+                      Написать
+                    </a>
+                  </Button>
+                  <p className="text-xs text-gray-500 mt-2">support@freelancehub.com</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card className="border-[#6FE7C8]/20">
+          <CardHeader>
+            <CardTitle className="text-2xl">Отправить сообщение</CardTitle>
+            <p className="text-sm text-gray-600">Мы ответим в течение 24 часов</p>
+          </CardHeader>
+          <CardContent className="grid gap-6">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-gray-900">Ваше имя</label>
+              <Input placeholder="Как вас зовут?" />
+            </div>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-gray-900">Email для связи</label>
+              <Input type="email" placeholder="your@email.com" />
+            </div>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-gray-900">Сообщение</label>
+              <textarea
+                rows={6}
+                className="rounded-lg border border-gray-300 px-4 py-3 bg-white focus:border-[#6FE7C8] focus:ring-2 focus:ring-[#6FE7C8]/20 outline-none transition-colors resize-none"
+                placeholder="Опишите ваш вопрос или предложение..."
+              />
+            </div>
+            <Button className="w-full sm:w-auto">Отправить сообщение</Button>
           </CardContent>
         </Card>
       </section>
