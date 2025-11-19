@@ -27,71 +27,15 @@ Deno.serve(async (req: Request) => {
 
     console.log("[cleanup-expired-deposits] Starting cleanup process...");
 
-    const currentTime = new Date().toISOString();
-    const twentyMinutesAgo = new Date(Date.now() - 20 * 60 * 1000).toISOString();
+    // Call the database function that bypasses RLS
+    const { data, error: rpcError } = await supabase.rpc("expire_old_deposits");
 
-    // Find expired deposits using two criteria:
-    // 1. Those with expires_at field that has passed
-    // 2. Those without expires_at but created more than 20 minutes ago
-    const { data: expiredDeposits, error: selectError } = await supabase
-      .from("transactions")
-      .select("id, wallet_id, amount, description, created_at, expires_at, provider")
-      .eq("type", "deposit")
-      .eq("status", "pending")
-      .or(`expires_at.lt.${currentTime},and(expires_at.is.null,created_at.lt.${twentyMinutesAgo})`);
-
-    if (selectError) {
-      console.error("[cleanup-expired-deposits] Error fetching expired deposits:", selectError);
-      throw selectError;
+    if (rpcError) {
+      console.error("[cleanup-expired-deposits] Error calling expire_old_deposits:", rpcError);
+      throw rpcError;
     }
 
-    const expiredCount = expiredDeposits?.length || 0;
-    console.log(`[cleanup-expired-deposits] Found ${expiredCount} expired deposits`);
-
-    if (expiredCount === 0) {
-      return new Response(
-        JSON.stringify({
-          success: true,
-          expired_count: 0,
-        }),
-        {
-          status: 200,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-    }
-
-    for (const deposit of expiredDeposits) {
-      console.log(
-        `[cleanup-expired-deposits] Expiring deposit ${deposit.id}: $${deposit.amount}, created ${deposit.created_at}, expires ${deposit.expires_at}`
-      );
-
-      // Don't add the timeout message if it's already there
-      const timeoutMessage = "(превышено время ожидания оплаты)";
-      const newDescription = deposit.description
-        ? (deposit.description.includes(timeoutMessage)
-            ? deposit.description
-            : `${deposit.description} ${timeoutMessage}`)
-        : `Пополнение кошелька ${timeoutMessage}`;
-
-      const { error: updateError } = await supabase
-        .from("transactions")
-        .update({
-          status: "expired",
-          provider_status: "expired",
-          description: newDescription,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", deposit.id);
-
-      if (updateError) {
-        console.error(`[cleanup-expired-deposits] Error updating deposit ${deposit.id}:`, updateError);
-      }
-    }
-
+    const expiredCount = data || 0;
     console.log(`[cleanup-expired-deposits] Successfully expired ${expiredCount} deposits`);
 
     return new Response(

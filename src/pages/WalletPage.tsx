@@ -178,7 +178,8 @@ export default function WalletPage() {
       console.log('[WalletPage] Cleanup result:', result);
 
       if (result.expired_count > 0) {
-        console.log(`[WalletPage] Expired ${result.expired_count} deposits`);
+        console.log(`[WalletPage] Expired ${result.expired_count} deposits - refreshing transaction list`);
+        await loadTransactions();
       }
     } catch (error) {
       console.error('[WalletPage] Failed to cleanup expired deposits:', error);
