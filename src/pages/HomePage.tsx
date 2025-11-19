@@ -194,7 +194,7 @@ function Categories() {
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {categories.map((c, idx) => (
-          <motion.div key={c.title} initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: idx * 0.04 }}>
+          <motion.div key={c.title} initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-50px" }} transition={{ duration: 0.4, delay: idx * 0.08, ease: "easeOut" }}>
             <a href={`#/market?category=${encodeURIComponent(c.title)}`}>
               <Card className="hover:shadow-lg transition-shadow cursor-pointer">
                 <CardHeader className="flex flex-row items-center gap-3 pb-2">
@@ -225,7 +225,7 @@ function Featured() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {featured.map((f, idx) => (
-            <motion.div key={f.title} initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: idx * 0.05 }}>
+            <motion.div key={f.title} initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-50px" }} transition={{ duration: 0.4, delay: idx * 0.08, ease: "easeOut" }}>
               <Card className="h-full flex flex-col">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base leading-6">{f.title}</CardTitle>
@@ -324,8 +324,8 @@ function WhyTaskHub() {
             key={f.title}
             initial={{ opacity: 0, y: 8 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: idx * 0.06 }}
+            viewport={{ once: true, margin: "-50px" }}
+            transition={{ duration: 0.4, delay: idx * 0.08, ease: "easeOut" }}
           >
             <Card className="h-full">
               <CardHeader className="pb-2">
@@ -388,8 +388,8 @@ function Testimonials() {
             key={t.name}
             initial={{ opacity: 0, y: 8 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: idx * 0.08 }}
+            viewport={{ once: true, margin: "-50px" }}
+            transition={{ duration: 0.4, delay: idx * 0.1, ease: "easeOut" }}
           >
             <Card>
               <CardContent className="pt-6 px-6 pb-6">

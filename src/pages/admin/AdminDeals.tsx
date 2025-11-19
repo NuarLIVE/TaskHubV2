@@ -40,13 +40,13 @@ export default function AdminDeals() {
     if (dealsData) {
       setDeals(dealsData);
 
-      const active = dealsData.filter(d => ['STARTED', 'SUBMITTED', 'REVISION_REQUESTED'].includes(d.status)).length;
-      const completed = dealsData.filter(d => ['ACCEPTED', 'RESOLVED'].includes(d.status)).length;
-      const disputed = dealsData.filter(d => d.status === 'DISPUTED').length;
+      const active = dealsData.filter(d => ['in_progress', 'pending_review'].includes(d.status)).length;
+      const completed = dealsData.filter(d => ['completed'].includes(d.status)).length;
+      const disputed = dealsData.filter(d => d.status === 'disputed').length;
       const totalValue = dealsData.reduce((sum, d) => sum + (d.price || 0), 0);
 
       const totalCommission = dealsData
-        .filter(d => ['ACCEPTED', 'RESOLVED'].includes(d.status))
+        .filter(d => ['completed'].includes(d.status))
         .reduce((sum, d) => {
           const price = d.price || 0;
           const rate = d.is_boosted ? 0.25 : 0.15;
@@ -76,28 +76,26 @@ export default function AdminDeals() {
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
-      'CREATED': 'bg-gray-100 text-gray-800',
-      'STARTED': 'bg-blue-100 text-blue-800',
-      'SUBMITTED': 'bg-yellow-100 text-yellow-800',
-      'REVISION_REQUESTED': 'bg-orange-100 text-orange-800',
-      'ACCEPTED': 'bg-green-100 text-green-800',
-      'DISPUTED': 'bg-red-100 text-red-800',
-      'RESOLVED': 'bg-green-100 text-green-800',
-      'CANCELLED': 'bg-gray-100 text-gray-800'
+      'pending': 'bg-gray-100 text-gray-800',
+      'in_progress': 'bg-blue-100 text-blue-800',
+      'pending_review': 'bg-yellow-100 text-yellow-800',
+      'revision_requested': 'bg-orange-100 text-orange-800',
+      'completed': 'bg-green-100 text-green-800',
+      'disputed': 'bg-red-100 text-red-800',
+      'cancelled': 'bg-gray-100 text-gray-800'
     };
     return colors[status] || 'bg-gray-100 text-gray-800';
   };
 
   const getStatusLabel = (status: string) => {
     const labels: Record<string, string> = {
-      'CREATED': 'Создана',
-      'STARTED': 'В работе',
-      'SUBMITTED': 'На проверке',
-      'REVISION_REQUESTED': 'Требуется доработка',
-      'ACCEPTED': 'Принята',
-      'DISPUTED': 'Спор',
-      'RESOLVED': 'Решена',
-      'CANCELLED': 'Отменена'
+      'pending': 'Ожидает',
+      'in_progress': 'В работе',
+      'pending_review': 'На проверке',
+      'revision_requested': 'Доработка',
+      'completed': 'Завершена',
+      'disputed': 'Спор',
+      'cancelled': 'Отменена'
     };
     return labels[status] || status;
   };
