@@ -857,65 +857,57 @@ export default function WalletPage() {
 
             {/* Pagination */}
             {totalTransactions > ITEMS_PER_PAGE && (
-              <div className="mt-6 flex items-center justify-between border-t pt-4 px-4">
-                <div className="text-sm text-[#3F7F6E]">
-                  Показано {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, totalTransactions)}-
-                  {Math.min(currentPage * ITEMS_PER_PAGE, totalTransactions)} из {totalTransactions}
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => loadTransactions(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="border-[#2F9C95] text-[#2F9C95] hover:bg-[#EFFFF8]"
-                  >
-                    &lt;
-                  </Button>
-                  {(() => {
-                    const totalPages = Math.ceil(totalTransactions / ITEMS_PER_PAGE);
-                    const pages: number[] = [];
+              <div className="mt-6 flex items-center justify-center gap-2 border-t pt-4 px-4">
+                <Button
+                  variant="outline"
+                  size="default"
+                  onClick={() => loadTransactions(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="h-10"
+                >
+                  &lt;
+                </Button>
 
-                    if (currentPage === 1) {
-                      pages.push(1);
-                      if (totalPages >= 2) pages.push(2);
-                      if (totalPages >= 3) pages.push(3);
-                    } else if (currentPage === totalPages) {
-                      if (totalPages >= 3) pages.push(totalPages - 2);
-                      if (totalPages >= 2) pages.push(totalPages - 1);
-                      pages.push(totalPages);
-                    } else {
-                      pages.push(currentPage - 1);
-                      pages.push(currentPage);
-                      if (currentPage + 1 <= totalPages) pages.push(currentPage + 1);
-                    }
+                {(() => {
+                  const totalPages = Math.ceil(totalTransactions / ITEMS_PER_PAGE);
+                  const pages: number[] = [];
 
-                    return pages.map((page) => (
-                      <Button
-                        key={page}
-                        variant={currentPage === page ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => loadTransactions(page)}
-                        className={
-                          currentPage === page
-                            ? 'bg-[#2F9C95] text-white hover:bg-[#267D77]'
-                            : 'border-[#2F9C95] text-[#2F9C95] hover:bg-[#EFFFF8]'
-                        }
-                      >
-                        {page}
-                      </Button>
-                    ));
-                  })()}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => loadTransactions(currentPage + 1)}
-                    disabled={currentPage >= Math.ceil(totalTransactions / ITEMS_PER_PAGE)}
-                    className="border-[#2F9C95] text-[#2F9C95] hover:bg-[#EFFFF8]"
-                  >
-                    &gt;
-                  </Button>
-                </div>
+                  if (currentPage === 1) {
+                    pages.push(1);
+                    if (totalPages >= 2) pages.push(2);
+                    if (totalPages >= 3) pages.push(3);
+                  } else if (currentPage === totalPages) {
+                    if (totalPages >= 3) pages.push(totalPages - 2);
+                    if (totalPages >= 2) pages.push(totalPages - 1);
+                    pages.push(totalPages);
+                  } else {
+                    pages.push(currentPage - 1);
+                    pages.push(currentPage);
+                    if (currentPage + 1 <= totalPages) pages.push(currentPage + 1);
+                  }
+
+                  return pages.map((page) => (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? 'default' : 'outline'}
+                      size="default"
+                      onClick={() => loadTransactions(page)}
+                      className="h-10 w-10"
+                    >
+                      {page}
+                    </Button>
+                  ));
+                })()}
+
+                <Button
+                  variant="outline"
+                  size="default"
+                  onClick={() => loadTransactions(currentPage + 1)}
+                  disabled={currentPage >= Math.ceil(totalTransactions / ITEMS_PER_PAGE)}
+                  className="h-10"
+                >
+                  &gt;
+                </Button>
               </div>
             )}
           </CardContent>
