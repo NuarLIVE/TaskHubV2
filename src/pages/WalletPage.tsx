@@ -160,11 +160,12 @@ export default function WalletPage() {
 
   const cleanupExpiredDeposits = async () => {
     try {
+      console.log('[WalletPage] Starting cleanup of expired deposits...');
       const supabase = getSupabase();
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const session = (await supabase.auth.getSession()).data.session;
 
-      await fetch(`${supabaseUrl}/functions/v1/cleanup-expired-deposits`, {
+      const response = await fetch(`${supabaseUrl}/functions/v1/cleanup-expired-deposits`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -172,8 +173,15 @@ export default function WalletPage() {
         },
         body: JSON.stringify({}),
       });
+
+      const result = await response.json();
+      console.log('[WalletPage] Cleanup result:', result);
+
+      if (result.expired_count > 0) {
+        console.log(`[WalletPage] Expired ${result.expired_count} deposits`);
+      }
     } catch (error) {
-      console.error('Failed to cleanup expired deposits:', error);
+      console.error('[WalletPage] Failed to cleanup expired deposits:', error);
     }
   };
 

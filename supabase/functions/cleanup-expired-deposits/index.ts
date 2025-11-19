@@ -27,14 +27,18 @@ Deno.serve(async (req: Request) => {
 
     console.log("[cleanup-expired-deposits] Starting cleanup process...");
 
+    const currentTime = new Date().toISOString();
+    const twentyMinutesAgo = new Date(Date.now() - 20 * 60 * 1000).toISOString();
+
+    // Find expired deposits using two criteria:
+    // 1. Those with expires_at field that has passed
+    // 2. Those without expires_at but created more than 20 minutes ago
     const { data: expiredDeposits, error: selectError } = await supabase
       .from("transactions")
-      .select("id, wallet_id, amount, description, created_at, expires_at")
+      .select("id, wallet_id, amount, description, created_at, expires_at, provider")
       .eq("type", "deposit")
-      .eq("provider", "stripe")
       .eq("status", "pending")
-      .not("expires_at", "is", null)
-      .lt("expires_at", new Date().toISOString());
+      .or(`expires_at.lt.${currentTime},and(expires_at.is.null,created_at.lt.${twentyMinutesAgo})`);
 
     if (selectError) {
       console.error("[cleanup-expired-deposits] Error fetching expired deposits:", selectError);
@@ -65,9 +69,13 @@ Deno.serve(async (req: Request) => {
         `[cleanup-expired-deposits] Expiring deposit ${deposit.id}: $${deposit.amount}, created ${deposit.created_at}, expires ${deposit.expires_at}`
       );
 
+      // Don't add the timeout message if it's already there
+      const timeoutMessage = "(превышено время ожидания оплаты)";
       const newDescription = deposit.description
-        ? `${deposit.description} (превышено время ожидания оплаты)`
-        : "Stripe пополнение кошелька (превышено время ожидания оплаты)";
+        ? (deposit.description.includes(timeoutMessage)
+            ? deposit.description
+            : `${deposit.description} ${timeoutMessage}`)
+        : `Пополнение кошелька ${timeoutMessage}`;
 
       const { error: updateError } = await supabase
         .from("transactions")
