@@ -121,10 +121,18 @@ Deno.serve(async (req: Request) => {
 
       console.log("Transaction found. Current status:", transaction.status);
 
-      if (transaction.status !== "pending") {
-        console.log("Transaction already processed:", transaction.id);
+      if (transaction.status === "completed") {
+        console.log("Transaction already completed:", transaction.id);
         return new Response(
-          JSON.stringify({ received: true, message: "Already processed" }),
+          JSON.stringify({ received: true, message: "Already completed" }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (transaction.status === "failed" || transaction.status === "cancelled") {
+        console.log("Transaction was failed/cancelled, ignoring:", transaction.id);
+        return new Response(
+          JSON.stringify({ received: true, message: "Transaction was failed or cancelled" }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -132,12 +140,23 @@ Deno.serve(async (req: Request) => {
       const amount = parseFloat(transaction.amount);
       console.log("Processing amount:", amount);
 
+      const wasExpired = transaction.status === "expired";
+      let newDescription = transaction.description;
+
+      if (wasExpired) {
+        console.log("Transaction was expired, but payment completed - accepting late payment");
+        newDescription = transaction.description
+          ? `${transaction.description} (оплачено после истечения 20-минутного ожидания)`
+          : "Stripe пополнение кошелька (оплачено после истечения 20-минутного ожидания)";
+      }
+
       const { error: updateError } = await supabase
         .from("transactions")
         .update({
           status: "completed",
           completed_at: new Date().toISOString(),
-          provider_status: session.payment_status,
+          provider_status: "succeeded",
+          description: newDescription,
         })
         .eq("id", transaction_id);
 

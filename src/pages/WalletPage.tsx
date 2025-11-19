@@ -83,7 +83,9 @@ export default function WalletPage() {
 
   useEffect(() => {
     if (user) {
-      loadProfileBalance().then(() => {
+      const init = async () => {
+        await cleanupExpiredDeposits();
+        await loadProfileBalance();
         getSupabase()
           .from('profiles')
           .select('balance')
@@ -94,10 +96,11 @@ export default function WalletPage() {
               localStorage.setItem(`viewed_wallet_${user.id}`, JSON.stringify({ balance: data.balance || 0 }));
             }
           });
-      });
-      loadWalletData();
-      loadTransactions();
-      loadStripeStatus();
+        await loadWalletData();
+        await loadTransactions();
+        loadStripeStatus();
+      };
+      init();
 
       const urlParams = new URLSearchParams(window.location.hash.split('?')[1] || '');
       const depositStatus = urlParams.get('deposit');
@@ -154,6 +157,25 @@ export default function WalletPage() {
       };
     }
   }, [user]);
+
+  const cleanupExpiredDeposits = async () => {
+    try {
+      const supabase = getSupabase();
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const session = (await supabase.auth.getSession()).data.session;
+
+      await fetch(`${supabaseUrl}/functions/v1/cleanup-expired-deposits`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
+        body: JSON.stringify({}),
+      });
+    } catch (error) {
+      console.error('Failed to cleanup expired deposits:', error);
+    }
+  };
 
   const loadProfileBalance = async () => {
     if (!user) return;
@@ -444,13 +466,13 @@ export default function WalletPage() {
   };
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, 'default' | 'secondary' | 'destructive'> = {
+    const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
       completed: 'default',
       processing: 'secondary',
       pending: 'secondary',
       failed: 'destructive',
       cancelled: 'destructive',
-      expired: 'secondary',
+      expired: 'outline',
       blocked: 'destructive',
       disputed: 'destructive',
       refunded: 'secondary'

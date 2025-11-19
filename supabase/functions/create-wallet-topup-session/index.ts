@@ -87,6 +87,8 @@ Deno.serve(async (req: Request) => {
       wallet = newWallet;
     }
 
+    const expiresAt = new Date(Date.now() + 20 * 60 * 1000).toISOString();
+
     const { data: transaction, error: transactionError } = await supabaseClient
       .from("transactions")
       .insert({
@@ -97,6 +99,7 @@ Deno.serve(async (req: Request) => {
         description: `Stripe пополнение кошелька $${amount.toFixed(2)}`,
         reference_type: "deposit",
         provider: "stripe",
+        expires_at: expiresAt,
       })
       .select()
       .single();
